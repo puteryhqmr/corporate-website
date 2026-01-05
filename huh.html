@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Happy Birthday — Isya Gonuk</title>
+  <style>
+    :root{--bg:#fff7f9;--card:#fff;--muted:#6b7280;--accent:#f9c5d1;--accent2:#ffdede}
+    *{box-sizing:border-box;font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:linear-gradient(180deg,#fff7f9 0%, #fffaf7 100%);color:#0f1724;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .wrap{width:100%;max-width:920px;padding:28px}
+    .card{background:var(--card);border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(15,23,36,0.08);display:flex;gap:24px;align-items:center}
+    .left{flex:1}
+    h1{margin:0;font-size:28px;letter-spacing:0.2px}
+    p.lead{margin:8px 0 18px;color:var(--muted);line-height:1.4}
+    .message{background:linear-gradient(180deg, rgba(255,255,255,0.9), rgba(249,197,209,0.4));padding:18px;border-radius:12px;border:1px solid rgba(0,0,0,0.03)}
+    .message p{margin:0;font-size:16px}
+
+    .media{width:320px;min-height:220px;border-radius:14px;background:linear-gradient(180deg, #fff, #fffaf6);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .media img, .media video{max-width:100%;max-height:100%;display:block;border-radius:10px}
+
+    .controls{margin-top:12px;display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;background:linear-gradient(90deg,#f7a9c0,#ffd9d9);cursor:pointer;font-weight:600}
+    .ghost{background:transparent;border:1px solid rgba(15,23,36,0.06)}
+
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+
+    /* balloons */
+    .balloon{position:absolute;bottom:-120px;width:36px;height:48px;border-radius:50% 50% 45% 45%;transform-origin:center bottom;}
+
+    /* confetti canvas */
+    #confetti{position:absolute;inset:0;pointer-events:none}
+
+    .centerPlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+    .startOverlay{position:fixed;inset:0;background:rgba(8,10,12,0.28);backdrop-filter: blur(4px);display:flex;align-items:center;justify-content:center}
+    .startCard{background:linear-gradient(180deg,#fff,#fffaf7);padding:30px;border-radius:14px;box-shadow:0 18px 40px rgba(2,6,23,0.15);text-align:center}
+    .startCard h2{margin:0 0 8px}
+    .small{font-size:13px;color:var(--muted)}
+
+    @media (max-width:800px){.card{flex-direction:column}.media{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="left">
+        <h1>Happy 20th, <span style="color:#b23a60">Isya Gonuk</span> 🎉</h1>
+        <p class="lead">Welcome to the 20 club dooo — pasni takleh claim muda lagi dah. ANYWAYS, thank you sebab ada and tolong aku tanpa berkira apa2 pun. Aku harap semua kebaikan kau yang kau bagi balas balik dekat kau sekali &lt;3</p>
+
+        <div class="message">
+          <p>Have a blast on your day and semoga dekan lagi sem ni yayyyyyy. (and also behave sikit pls)</p>
+        </div>
+
+        <div class="controls">
+          <label class="btn ghost" id="uploadPhotoBtn">Tambah gambar / video</label>
+          <button class="btn" id="playMusicBtn">Play instrumental</button>
+          <button class="btn ghost" id="downloadBtn">Muat turun kad</button>
+        </div>
+      </div>
+
+      <div class="media" id="mediaArea">
+        <div id="placeholderText" style="text-align:center;color:var(--muted)">
+          <div style="font-weight:600">Gambar / Video korang akan muncul sini</div>
+          <div class="small">Klik "Tambah gambar / video" untuk pilih fail dari komputer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden file input -->
+  <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" />
+
+  <!-- audio (user should supply file locally or you can edit src) -->
+  <audio id="bgAudio" loop crossorigin="anonymous">
+    <!-- To change the audio, replace the src below with a direct URL or local file name when hosting locally -->
+    <source src="zb1.isya.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <!-- confetti canvas -->
+  <canvas id="confetti"></canvas>
+
+  <!-- small start overlay to allow autoplay on user gesture -->
+  <div class="startOverlay" id="startOverlay">
+    <div class="startCard">
+      <h2>Happy Birthday, Isya!</h2>
+      <p class="small">Tap anywhere to open your birthday message ✨</p>
+      <div style="margin-top:12px"><button id="openBtn" class="btn">Buka</button></div>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const startOverlay = document.getElementById('startOverlay');
+    const openBtn = document.getElementById('openBtn');
+    const mediaArea = document.getElementById('mediaArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+    const playMusicBtn = document.getElementById('playMusicBtn');
+    const bgAudio = document.getElementById('bgAudio');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const confettiCanvas = document.getElementById('confetti');
+
+    // Confetti setup
+    const C = confettiCanvas; const ctx = C.getContext('2d');
+    function resizeCanvas(){ C.width = window.innerWidth; C.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+    // tiny confetti animation
+    function throwConfetti(){
+      const pieces = [];
+      for(let i=0;i<150;i++){ pieces.push({x:Math.random()*C.width,y:-20 + Math.random()*-400,w:6+Math.random()*8,h:8+Math.random()*8,vy:2+Math.random()*5,rot:Math.random()*360,vr:2-4*Math.random(),col: `hsl(${Math.random()*50+320} 80% ${60 - Math.random()*8}%)`}); }
+      let t=0; const id = setInterval(()=>{
+        ctx.clearRect(0,0,C.width,C.height);
+        for(const p of pieces){ p.y += p.vy; p.rot += p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle = p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore(); }
+        t++; if(t>160){ clearInterval(id); ctx.clearRect(0,0,C.width,C.height); }
+      },16);
+    }
+
+    // Balloons floating background (subtle)
+    function createBalloons(){
+      const colours = ['#f9c5d1','#ffdede','#ffe7d2','#cbe7e4'];
+      for(let i=0;i<10;i++){
+        const b = document.createElement('div'); b.className='balloon';
+        const w = 28 + Math.random()*42; b.style.width = w+'px'; b.style.height = (w*1.3)+'px';
+        b.style.left = (Math.random()*100)+'%'; b.style.bottom = (-120 - Math.random()*200)+'px';
+        b.style.background = colours[i%colours.length]; b.style.opacity = 0.95;
+        b.style.transition = 'transform 10s linear';
+        document.body.appendChild(b);
+        (function(el,delay){ setTimeout(()=>animateBalloon(el), delay); })(b, i*600);
+      }
+    }
+    function animateBalloon(el){
+      const toX = (Math.random()*40 - 20); const up = - (window.innerHeight + 300 + Math.random()*200);
+      el.style.transform = `translate(${toX}px, ${up}px) rotate(${Math.random()*40-20}deg)`;
+      setTimeout(()=>{ el.remove(); const nw = document.createElement('div'); nw.className='balloon'; const w = 28 + Math.random()*42; nw.style.width = w+'px'; nw.style.height = (w*1.3)+'px'; nw.style.left = (Math.random()*100)+'%'; nw.style.bottom = (-120 - Math.random()*200)+'px'; nw.style.background = ['#f9c5d1','#ffdede','#ffe7d2','#cbe7e4'][Math.floor(Math.random()*4)]; document.body.appendChild(nw); setTimeout(()=>animateBalloon(nw),200); }, 10500);
+    }
+
+    // Start/enter
+    function openCard(){ startOverlay.style.display='none'; createBalloons(); throwConfetti(); }
+    openBtn.addEventListener('click', ()=>{ openCard(); tryPlayAudio(); });
+    startOverlay.addEventListener('click', ()=>{ openCard(); tryPlayAudio(); });
+
+    // File upload handling (image or video)
+    uploadPhotoBtn.addEventListener('click', ()=> fileInput.click());
+    fileInput.addEventListener('change', (e)=>{
+      const f = e.target.files[0]; if(!f) return; const url = URL.createObjectURL(f);
+      mediaArea.innerHTML = '';
+      if(f.type.startsWith('image/')){ const img = document.createElement('img'); img.src = url; mediaArea.appendChild(img); }
+      else if(f.type.startsWith('video/')){ const v = document.createElement('video'); v.src = url; v.controls = true; v.autoplay = true; mediaArea.appendChild(v); }
+    });
+
+    // Audio control and autoplay note
+    function tryPlayAudio(){ if(!bgAudio.src) return; const p = bgAudio.play(); if(p!==undefined){ p.catch(()=>{/* autoplay blocked */}); }}
+
+    playMusicBtn.addEventListener('click', ()=>{
+      if(!bgAudio.src){ alert('Tiada lagu diset. Untuk tambah lagu: buka fail HTML ini dalam editor teks, cari elemen <audio id="bgAudio"> dan tampal link mp3 ke dalam <source src="..."> atau letak fail mp3 bersama HTML dan masukkan nama fail.'); return; }
+      if(bgAudio.paused){ bgAudio.play(); playMusicBtn.textContent = 'Pause instrumental'; } else { bgAudio.pause(); playMusicBtn.textContent = 'Play instrumental'; }
+    });
+
+    // Download card as PNG (simple screenshot of viewport)
+    downloadBtn.addEventListener('click', ()=>{
+      // Use SVG foreignObject trick similar to earlier — simple and works in many browsers
+      const rect = document.body.getBoundingClientRect();
+      const node = document.querySelector('.card');
+      const r = node.getBoundingClientRect();
+      const clone = node.cloneNode(true);
+      const svg = `<?xml version="1.0" encoding="utf-8"?>\n<svg xmlns='http://www.w3.org/2000/svg' width='${r.width}' height='${r.height}'>\n<foreignObject width='100%' height='100%'>\n<div xmlns='http://www.w3.org/1999/xhtml' style='width:${r.width}px;height:${r.height}px'>${clone.outerHTML}</div>\n</foreignObject>\n</svg>`;
+      const img = new Image(); const svgBlob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      img.onload = ()=>{
+        const canvas = document.createElement('canvas'); canvas.width = r.width; canvas.height = r.height; const ctx2 = canvas.getContext('2d'); ctx2.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'Isya_birthday_card.png'; a.click();
+      };
+      img.src = url;
+    });
+
+    // Helpful note: browsers often block autoplay of audio until a user gesture. We added an overlay so when the friend clicks "Buka" it's a user gesture and audio can start.
+
+    // Initialize: keep overlay visible until user opens
+    // You can also set bgAudio.src here if you have a public URL, e.g. bgAudio.src = 'https://example.com/song.mp3'
+
+  </script>
+</body>
+</html>
